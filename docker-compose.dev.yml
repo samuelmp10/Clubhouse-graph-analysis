@@ -1,0 +1,8 @@
+clubhouse:
+  build: .
+  volumes:
+    - .:/usr/src/app
+  ports:
+    - "5000:5000"
+  environment:
+    - APITOKEN=5caa2da9-68df-4575-aef2-e13cd426a0b7

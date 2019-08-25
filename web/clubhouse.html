@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Clubhouse</title>
+    <script src="http://d3js.org/d3.v4.min.js"></script>
+</head>
+
+<style>
+
+	  /* Make the chart container fill the page using CSS. */
+      #chart {
+        position: fixed;
+        left: 0px;
+        right: 0px;
+        top: 0px;
+        bottom: 0px;
+      }
+
+    .links line {
+        stroke: #599;
+        stroke-opacity: 0.3;
+		stroke-width: 0.3px;
+    }
+
+    .nodes circle {
+        stroke: #423838;
+        stroke-width: 2.5px;
+		stroke-opacity: 1;
+    }
+	
+	.legend rect {
+  fill:white;
+  stroke:black;
+  opacity:0.8;}
+
+    text {
+        font-family: sans-serif;
+        font-size: 10px;
+    }
+
+    divname.tooltip {
+        position: absolute;
+        text-align: center;
+        padding: 2px;
+        font: 4px sans-serif;
+		font-weight: bold;
+        background: lightsteelblue;
+        border: 0px;
+        border-radius: 12px;
+        pointer-events: none;
+    }
+	divweight.tooltip {
+        position: absolute;
+        text-align: center;
+        padding: 2px;
+        font: 3.2px sans-serif;
+        background: lightsteelblue;
+        border: 0px;
+        border-radius: 12px;
+        pointer-events: none;
+    }
+	
+	
+	h3 {
+    margin-top: 10px;
+	font: 8.2px serif;
+	font-weight: bold;
+}
+
+.country-name {
+    margin: 0 !important;
+	    margin-top: 0px;
+	margin-right:20px;
+	font: 6.2px serif;
+}
+
+.key-dot {
+    display: inline-block;
+    height: 5px;
+    margin-right: .5em;
+    width: 10px;
+	font: 13.2px sans-serif;
+	border: 0.5px solid black; 
+	
+	
+}
+
+.legend {
+    margin-right:20px;
+	font: 11.2px sans-serif;
+}
+
+.seng1 { background: #1F77B4;}
+.intproj { background: #808080;}
+.comfraud { background: #ff0000;}
+.driver { background: #006400;}
+.rider { background: #FF7F0E;}
+.finance { background: #8B0000;}
+.c4b { background: #FFD700;}
+.colombia { background: #ADFF2F;}
+.dscience { background: #8B008B;}
+.dana { background: #FF69B4;}
+
+</style>
+
+<body>
+<div id="content">
+    <svg width="400" height="400">
+        <rect width="400" height="400" style="stroke-width: 4px; stroke: black; fill-opacity: 0.0"/>
+    </svg>
+</div>
+	 <div class="legend1">
+	  <h3>Comunidades</h3>
+     <div class="legend1"> <p class="country-name"><span class="key-dot seng1"></span>Data Engineering</p> </div>
+	 <div class="legend1"> <p class="country-name"><span class="key-dot intproj"></span>Internal Projects</p> </div>
+	 <div class="legend1"> <p class="country-name"><span class="key-dot comfraud"></span>Community - Fraud</p> </div>
+	 <div class="legend1"> <p class="country-name"><span class="key-dot driver"></span>Driver</p> </div>
+	 <div class="legend1"> <p class="country-name"><span class="key-dot rider"></span>Rider</p> </div>
+	 <div class="legend1"> <p class="country-name"><span class="key-dot finance"></span>Finance</p> </div>
+	 <div class="legend1"> <p class="country-name"><span class="key-dot c4b"></span>C4B</p> </div>
+	 <div class="legend1"> <p class="country-name"><span class="key-dot colombia"></span>Colombia</p> </div>
+	 <div class="legend1"> <p class="country-name"><span class="key-dot dscience"></span>Data Science</p> </div>
+	 <div class="legend1"> <p class="country-name"><span class="key-dot dana"></span>Data Analytics</p> </div>
+	 </div>
+
+<script>
+
+
+
+
+    var svg = d3.select("svg"),
+        width = +svg.attr("width"),
+        height = +svg.attr("height");
+	
+	var pattern_def = svg.append("defs");
+
+    var simulation = d3.forceSimulation()
+        .force("link", d3.forceLink().id(function(d) { return d.id; }))
+        .force("charge", d3.forceManyBody().strength(-10))
+        .force("collide", d3.forceCollide().radius(function (d) {
+            return calculateSize(d);
+        }))
+        .force("center", d3.forceCenter(width / 2, height / 2));
+
+    //var color = d3.scaleOrdinal(d3.schemeCategory20);
+    var weightScale = d3.scaleLinear().domain([50, 200000]).range([1.2,4400]);
+
+    var divname = d3.select("body").append("divname")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+	var divweight = d3.select("body").append("divweight")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+    d3.json("graph.json", function(graph) {
+
+
+        var idImage=1;
+        var link = svg.append("g")
+            .attr("class", "links")
+            .selectAll("line")
+            .data(graph.links)
+            .enter().append("line");
+
+        var node = svg.append("g")
+            .attr("class", "nodes")
+            .selectAll("g")
+            .data(graph.nodes)
+            .enter().append("g")
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
+
+        var circles = node.append("circle")
+            .attr("r", function (d) {
+                return calculateSize(d)
+            })
+            .attr("fill", function (d) {
+                if (d['image']) {
+                    pattern_def.append("pattern")
+                        .attr("id", "image-" + idImage)
+                        .attr("patternContentUnits", "objectBoundingBox")
+                        .attr("width", "100%")
+                        .attr("height", "100%")
+                        .attr("viewBox", "0 0 1 1");
+
+                    d3.select("#" + "image-" + idImage)
+                        .append("image")
+                        .attr("xlink:href", d.image)
+                        .attr("x", 0)
+                        .attr("y", 0)
+                        .attr("width", "1")
+                        .attr("height", "1")
+                        .attr("preserveAspectRatio", "none");
+                    var returnVal = "url(#image-" + idImage + ")";
+                    idImage++;
+                    return returnVal;
+                } else {
+                return colorForType(d)
+            }}).style("stroke", function (d) {
+                return colorForType(d)
+            })
+			.on("mouseover", function(d) {
+                divname.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                divname.html(d['id'])
+                    .style("left", (d3.event.pageX) + "px")
+                    .style("top", (d3.event.pageY - 15) + "px")
+                    .style('background', colorForType(d));
+				divweight.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+				divweight.html(d['weight'])
+                    .style("left", (d3.event.pageX) + "px")
+                    .style("top", (d3.event.pageY - 6) + "px")
+                    .style('background', colorForType(d));
+            })
+            .on("mouseout", function(d) {
+                divname.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+				divweight.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            });
+			
+		var setEvents = node
+            .on( 'mouseenter', function() {
+                // select element in current context
+                d3.select( this ).raise().select('circle')
+                    .transition()
+                    .attr("r", 15);
+            })
+            // set back
+            .on( 'mouseleave', function() {
+                d3.select( this ).select('circle')
+                    .transition()
+                    .attr("r", function(d) {
+                        return calculateSize(d)
+                    });
+			});
+
+        simulation
+            .nodes(graph.nodes)
+            .on("tick", ticked);
+
+        simulation.force("link")
+            .links(graph.links);
+
+        function ticked() {
+            link
+                .attr("x1", function(d) { return d.source.x; })
+                .attr("y1", function(d) { return d.source.y; })
+                .attr("x2", function(d) { return d.target.x; })
+                .attr("y2", function(d) { return d.target.y; });
+
+            node
+                .attr("transform", function(d) {
+                    return "translate(" + d.x + "," + d.y + ")";
+                })
+        }
+
+
+        function dragstarted(d) {
+            if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(d) {
+            d.fx = d3.event.x;
+            d.fy = d3.event.y;
+        }
+
+        function dragended(d) {
+            if (!d3.event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+    });
+
+    function calculateSize(d) {
+
+            return weightScale(d["weight"]);
+
+    }
+
+    function colorForType(d) {
+        switch (d["department"]) {
+            case 0: return '#1F77B4';
+            case 1: return '#FF0000';
+            case 2: return '#006400';
+            case 3: return '#FF7F0E';
+	    case 4: return '#ADFF2F';
+	    case 5: return '#8B0000';
+	    case 6: return '#FF69B4';
+	    case 7: return '#FFD700';
+	    case 8: return '#8B008B';
+	    case 9: return '#808080';
+	    case 10: return '#B0C4DE';
+        }
+	
+	
+		
+
+    }
+</script>
+
+</body>
+</html>
+
+
